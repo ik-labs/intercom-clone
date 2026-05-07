@@ -194,7 +194,7 @@ export function CommandInput({ onSubmit, disabled = false }: CommandInputProps) 
         </div>
 
         <div
-          className="absolute left-0 right-0 z-20 mt-1 border border-primary bg-primary/90 backdrop-blur-sm font-mono text-xs"
+          className="absolute left-0 right-0 z-20 mb-1 bottom-full border border-primary bg-primary/90 backdrop-blur-sm font-mono text-xs"
           style={{ display: isOpen ? 'block' : 'none' }}
         >
           {showAutocomplete ? (
