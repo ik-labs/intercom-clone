@@ -9,7 +9,11 @@ import { OperationsDashboard } from './OperationsDashboard';
 import { CommandPalette } from './CommandPalette';
 import { executeCommand, CommandResult } from '@/lib/terminal';
 
-export function TerminalHero() {
+interface TerminalHeroProps {
+  onBriefingCommand?: () => void;
+}
+
+export function TerminalHero({ onBriefingCommand }: TerminalHeroProps) {
   const [commands, setCommands] = useState<CommandResult[]>([]);
   const [paletteOpen, setPaletteOpen] = useState(false);
 
@@ -32,6 +36,11 @@ export function TerminalHero() {
       setCommands([]);
     } else {
       setCommands([...commands, result]);
+    }
+
+    const normalizedInput = input.toLowerCase().trim();
+    if (normalizedInput === '/briefing' && onBriefingCommand) {
+      onBriefingCommand();
     }
   };
 

@@ -5,8 +5,93 @@ import { VoiceBriefingConsole } from '@/components/terminal/VoiceBriefingConsole
 import { FinActivityLog } from '@/components/terminal/FinActivityLog';
 import { TicketRoutingTable } from '@/components/terminal/TicketRoutingTable';
 import { motion } from 'framer-motion';
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+type BriefingStatus = 'idle' | 'generating' | 'playing' | 'complete' | 'error';
 
 export default function Home() {
+  const [briefingStatus, setBriefingStatus] = useState<BriefingStatus>('idle');
+  const [briefingProgress, setBriefingProgress] = useState(0);
+  const [briefingError, setBriefingError] = useState<string | null>(null);
+  const briefAudioRef = useRef<HTMLAudioElement | null>(null);
+  const voiceBriefingSectionRef = useRef<HTMLElement | null>(null);
+  const briefingAudioPath = '/audio/support-briefing.mp3';
+
+  const playBriefingAudio = useCallback(() => {
+    const audio = briefAudioRef.current ?? new Audio();
+    briefAudioRef.current = audio;
+
+    audio.onended = null;
+    audio.onerror = null;
+    audio.onplaying = null;
+    audio.ontimeupdate = null;
+    audio.onloadstart = null;
+
+    setBriefingStatus('generating');
+    setBriefingProgress(0);
+    setBriefingError(null);
+
+    audio.pause();
+    audio.currentTime = 0;
+    audio.src = briefingAudioPath;
+    audio.load();
+
+    audio.onplaying = () => {
+      setBriefingStatus('playing');
+    };
+
+    audio.onended = () => {
+      setBriefingProgress(100);
+      setBriefingStatus('complete');
+    };
+
+    audio.ontimeupdate = () => {
+      if (Number.isFinite(audio.duration) && audio.duration > 0) {
+        setBriefingProgress(Math.min(100, Math.round((audio.currentTime / audio.duration) * 100)));
+      }
+    };
+
+    audio.onerror = () => {
+      setBriefingError(`[ERROR] Could not load ${briefingAudioPath}`);
+      setBriefingStatus('error');
+      setBriefingProgress(0);
+    };
+
+    audio
+      .play()
+      .then(() => {
+        setBriefingStatus('playing');
+      })
+      .catch(() => {
+        setBriefingError(`[ERROR] Could not load ${briefingAudioPath}`);
+        setBriefingStatus('error');
+        setBriefingProgress(0);
+      });
+  }, [briefingAudioPath]);
+
+  const handleBriefingCommand = useCallback(() => {
+    if (voiceBriefingSectionRef.current) {
+      voiceBriefingSectionRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }
+    playBriefingAudio();
+  }, [playBriefingAudio]);
+
+  useEffect(() => {
+    return () => {
+      const audio = briefAudioRef.current;
+      if (!audio) return;
+      audio.pause();
+      audio.onended = null;
+      audio.onerror = null;
+      audio.onplaying = null;
+      audio.ontimeupdate = null;
+      audio.onloadstart = null;
+    };
+  }, []);
+
   const qaRows = [
     { id: 'convo_4821', score: 92, statusLabel: 'status: good', state: 'good' },
     { id: 'convo_4818', score: 61, statusLabel: 'risk: high', state: 'high' },
@@ -43,9 +128,9 @@ export default function Home() {
   ];
 
   return (
-    <main className="w-full bg-background text-foreground overflow-x-hidden">
+      <main className="w-full bg-background text-foreground overflow-x-hidden">
       {/* Hero Terminal Section */}
-      <TerminalHero />
+      <TerminalHero onBriefingCommand={handleBriefingCommand} />
 
       {/* Main Headline Section */}
       <motion.section
@@ -317,7 +402,10 @@ export default function Home() {
       </motion.section>
 
       {/* Voice Briefing Section (ElevenLabs) */}
-      <motion.section className="py-16 px-4 border-b border-primary bg-background">
+      <motion.section
+        ref={voiceBriefingSectionRef}
+        className="py-16 px-4 border-b border-primary bg-background"
+      >
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 lg:auto-cols-reverse">
           {/* Text Content */}
           <motion.div
@@ -379,7 +467,12 @@ export default function Home() {
             transition={{ duration: 0.6, delay: 0.1 }}
             viewport={{ once: true }}
           >
-            <VoiceBriefingConsole />
+            <VoiceBriefingConsole
+              briefingStatus={briefingStatus}
+              briefingProgress={briefingProgress}
+              briefingError={briefingError}
+              onPlayBriefing={playBriefingAudio}
+            />
           </motion.div>
         </div>
       </motion.section>
@@ -671,7 +764,10 @@ export default function Home() {
             <button className="px-8 py-3 border-2 border-foreground bg-background text-foreground font-mono text-sm hover:terminal-glow-success hover:border-current transition-all">
               Run Demo Scan
             </button>
-            <button className="px-8 py-3 border-2 border-foreground text-foreground font-mono text-sm hover:terminal-glow-info hover:border-current transition-all">
+            <button
+              onClick={playBriefingAudio}
+              className="px-8 py-3 border-2 border-foreground text-foreground font-mono text-sm hover:terminal-glow-info hover:border-current transition-all"
+            >
               Play Voice Briefing
             </button>
           </motion.div>

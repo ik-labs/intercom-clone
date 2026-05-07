@@ -2,13 +2,23 @@
 
 import { motion } from 'framer-motion';
 import { Play } from 'lucide-react';
-import { useState } from 'react';
 
-export function VoiceBriefingConsole() {
-  const [playing, setPlaying] = useState(false);
-  const [generating, setGenerating] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [showTranscript, setShowTranscript] = useState(false);
+type BriefingStatus = 'idle' | 'generating' | 'playing' | 'complete' | 'error';
+
+interface VoiceBriefingConsoleProps {
+  onPlayBriefing: () => void;
+  briefingStatus: BriefingStatus;
+  briefingProgress: number;
+  briefingError: string | null;
+}
+
+export function VoiceBriefingConsole({
+  onPlayBriefing,
+  briefingStatus,
+  briefingProgress,
+  briefingError,
+}: VoiceBriefingConsoleProps) {
+  const showTranscript = briefingStatus === 'playing' || briefingStatus === 'complete';
 
   const transcriptLines = [
     '"Support volume is stable with 1,247 messages today.',
@@ -16,31 +26,6 @@ export function VoiceBriefingConsole() {
     'Fin resolved 72% of incoming chats this morning.',
     'Recommend: Deploy extra capacity to billing team."',
   ];
-
-  const handlePlayClick = () => {
-    if (playing) {
-      setPlaying(false);
-      return;
-    }
-
-    setGenerating(true);
-    setProgress(0);
-    setShowTranscript(false);
-
-    // Simulate generation
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setGenerating(false);
-          setPlaying(true);
-          setShowTranscript(true);
-          return 100;
-        }
-        return prev + 5;
-      });
-    }, 100);
-  };
 
   return (
     <motion.div
@@ -61,18 +46,25 @@ export function VoiceBriefingConsole() {
           $ elevenlabs briefing --workspace=today --voice=ops_manager
         </div>
 
-        {generating && (
-          <motion.div className="text-xs terminal-glow-info" animate={{ opacity: [0.7, 1] }} transition={{ duration: 1, repeat: Infinity }}>
+        {briefingStatus === 'generating' && (
+          <motion.div
+            className="text-xs terminal-glow-info"
+            animate={{ opacity: [0.7, 1] }}
+            transition={{ duration: 1, repeat: Infinity }}
+          >
             Generating briefing with ElevenLabs AI...
           </motion.div>
         )}
 
-        {/* Animated waveform progress */}
-        {generating && (
+        {(briefingStatus === 'generating' || briefingStatus === 'playing') && (
           <motion.div className="space-y-2">
             <div className="flex justify-between items-center">
-              <div className="text-xs text-muted-foreground">Processing audio synthesis</div>
-              <div className="text-xs terminal-glow-success">{progress}%</div>
+              <div className="text-xs text-muted-foreground">
+                {briefingStatus === 'generating'
+                  ? 'Processing audio synthesis'
+                  : 'Streaming voice briefing'}
+              </div>
+              <div className="text-xs terminal-glow-success">{briefingProgress}%</div>
             </div>
             <div className="flex gap-1 items-center h-6">
               {Array.from({ length: 12 }).map((_, i) => (
@@ -80,7 +72,9 @@ export function VoiceBriefingConsole() {
                   key={i}
                   className="flex-1 bg-primary border border-primary"
                   animate={{
-                    height: generating ? ['1rem', '1.5rem', '0.75rem', '1.2rem', '1rem'] : '1rem',
+                    height: briefingStatus === 'playing'
+                      ? ['0.9rem', '1.5rem', '1rem', '1.3rem', '0.9rem']
+                      : ['1rem', '1.5rem', '0.75rem', '1.2rem', '1rem'],
                   }}
                   transition={{
                     duration: 0.6,
@@ -93,13 +87,12 @@ export function VoiceBriefingConsole() {
           </motion.div>
         )}
 
-        {!generating && progress === 0 && (
+        {briefingStatus === 'idle' && briefingProgress === 0 && (
           <div className="text-xs text-muted-foreground">
             Click "Play briefing" to generate voice synthesis
           </div>
         )}
 
-        {/* Transcript section - reveal line by line */}
         {showTranscript && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -130,18 +123,21 @@ export function VoiceBriefingConsole() {
           </motion.div>
         )}
 
-        {/* Control buttons */}
         <div className="flex gap-2 pt-2 flex-wrap">
           <button
-            onClick={handlePlayClick}
+            onClick={onPlayBriefing}
             className={`flex items-center gap-2 px-3 py-2 text-xs border border-current transition-all ${
-              playing || generating
+              briefingStatus === 'generating' || briefingStatus === 'playing'
                 ? 'terminal-glow-success bg-background'
                 : 'text-muted-foreground hover:text-foreground hover:terminal-glow-success'
             }`}
           >
             <Play className="w-3 h-3" />
-            {generating ? 'Generating...' : playing ? 'Playing...' : 'Play briefing'}
+            {briefingStatus === 'generating'
+              ? 'Generating...'
+              : briefingStatus === 'playing'
+                ? 'Playing...'
+                : 'Play briefing'}
           </button>
           <button className="px-3 py-2 text-xs border border-current text-muted-foreground hover:text-foreground hover:terminal-glow-info transition-colors">
             Regenerate
@@ -159,11 +155,16 @@ export function VoiceBriefingConsole() {
           transition={{ delay: 0.5 }}
           className="text-xs text-muted-foreground space-y-1"
         >
-          <div>└─ Powered by ElevenLabs | Voice: ops_manager</div>
-          {playing && (
-            <div className="terminal-glow-success text-xs">
-              ✓ Voice briefing ready
-            </div>
+          <div>└─ Powered by ElevenLabs Text to Speech</div>
+          <div className="terminal-glow-info text-xs">Voice: ops_manager</div>
+          {briefingStatus === 'playing' && (
+            <div className="terminal-glow-success text-xs">[PLAYING] ElevenLabs voice briefing</div>
+          )}
+          {briefingStatus === 'complete' && (
+            <div className="terminal-glow-success text-xs">[READY] Voice briefing complete</div>
+          )}
+          {briefingStatus === 'error' && briefingError && (
+            <div className="text-red-400 text-xs">{briefingError}</div>
           )}
         </motion.div>
       </div>
