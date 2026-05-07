@@ -20,26 +20,35 @@ export function TerminalHero({ onBriefingCommand, onCommand }: TerminalHeroProps
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setPaletteOpen(true);
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, []);
 
   const handleCommand = (input: string) => {
-    const result = executeCommand(input);
+    if (typeof input !== 'string') {
+      return;
+    }
+
+    const safeInput = input.trim();
+    if (!safeInput) {
+      return;
+    }
+
+    const result = executeCommand(safeInput);
     
-    if (input.toLowerCase().includes('/clear')) {
+    if (safeInput.toLowerCase().includes('/clear')) {
       setCommands([]);
     } else {
       setCommands([...commands, result]);
     }
 
-    const normalizedInput = input.toLowerCase().trim();
+    const normalizedInput = safeInput.toLowerCase();
     if (normalizedInput === '/briefing' && onBriefingCommand) {
       onBriefingCommand();
     }

@@ -190,15 +190,16 @@ export const COMMANDS: Record<string, Command> = {
   },
 };
 
-export function executeCommand(input: string): CommandResult {
-  const trimmedInput = input.toLowerCase().trim();
+export function executeCommand(input: unknown): CommandResult {
+  const safeInput = typeof input === 'string' ? input : '';
+  const trimmedInput = safeInput.toLowerCase().trim();
   const command = COMMANDS[trimmedInput.replace('/', '')];
 
   if (!command) {
     return {
-      command: input,
+      command: safeInput,
       output: [
-        `Command not found: ${input}`,
+        `Command not found: ${safeInput || '[empty command]'}`,
         'Type /help for available commands',
       ],
       timestamp: new Date(),
@@ -207,7 +208,7 @@ export function executeCommand(input: string): CommandResult {
   }
 
   return {
-    command: input,
+    command: safeInput,
     output: Array.isArray(command.output)
       ? command.output
       : [command.output],
