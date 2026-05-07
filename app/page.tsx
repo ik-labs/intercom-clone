@@ -6,16 +6,47 @@ import { FinActivityLog } from '@/components/terminal/FinActivityLog';
 import { TicketRoutingTable } from '@/components/terminal/TicketRoutingTable';
 import { motion } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { CommandResult } from '@/lib/terminal';
 
 type BriefingStatus = 'idle' | 'generating' | 'playing' | 'complete' | 'error';
+
+const SFX_MAP = {
+  '/help': '/audio/sfx/help.mp3',
+  '/scan': '/audio/sfx/scan.mp3',
+  '/fin': '/audio/sfx/fin.mp3',
+  '/tickets': '/audio/sfx/tickets.mp3',
+  '/qa': '/audio/sfx/qa.mp3',
+  '/clear': '/audio/sfx/clear.mp3',
+  '/error': '/audio/sfx/error.mp3',
+} as const;
 
 export default function Home() {
   const [briefingStatus, setBriefingStatus] = useState<BriefingStatus>('idle');
   const [briefingProgress, setBriefingProgress] = useState(0);
   const [briefingError, setBriefingError] = useState<string | null>(null);
   const briefAudioRef = useRef<HTMLAudioElement | null>(null);
+  const sfxAudioRef = useRef<Record<string, HTMLAudioElement>>({});
   const voiceBriefingSectionRef = useRef<HTMLElement | null>(null);
   const briefingAudioPath = '/audio/support-briefing.mp3';
+
+  const playSfx = useCallback((commandName: string) => {
+    const path = SFX_MAP[commandName as keyof typeof SFX_MAP];
+    if (!path) return;
+
+    const cached = sfxAudioRef.current[commandName];
+    const audio = cached ?? new Audio();
+    sfxAudioRef.current[commandName] = audio;
+
+    audio.onerror = null;
+    audio.onended = null;
+    audio.volume = 0.3;
+    audio.pause();
+    audio.currentTime = 0;
+    audio.src = path;
+    audio.load();
+
+    audio.play().catch(() => {});
+  }, []);
 
   const playBriefingAudio = useCallback(() => {
     const audio = briefAudioRef.current ?? new Audio();
@@ -79,6 +110,19 @@ export default function Home() {
     playBriefingAudio();
   }, [playBriefingAudio]);
 
+  const handleTerminalCommand = useCallback(
+    (normalizedInput: string, result: CommandResult) => {
+      if (result.status === 'error') {
+        playSfx('/error');
+        return;
+      }
+
+      if (normalizedInput === '/briefing') return;
+      playSfx(normalizedInput);
+    },
+    [playSfx]
+  );
+
   useEffect(() => {
     return () => {
       const audio = briefAudioRef.current;
@@ -89,6 +133,12 @@ export default function Home() {
       audio.onplaying = null;
       audio.ontimeupdate = null;
       audio.onloadstart = null;
+
+      Object.values(sfxAudioRef.current).forEach((sfxAudio) => {
+        sfxAudio.pause();
+        sfxAudio.onended = null;
+        sfxAudio.onerror = null;
+      });
     };
   }, []);
 
@@ -130,7 +180,7 @@ export default function Home() {
   return (
       <main className="w-full bg-background text-foreground overflow-x-hidden">
       {/* Hero Terminal Section */}
-      <TerminalHero onBriefingCommand={handleBriefingCommand} />
+      <TerminalHero onBriefingCommand={handleBriefingCommand} onCommand={handleTerminalCommand} />
 
       {/* Main Headline Section */}
       <motion.section

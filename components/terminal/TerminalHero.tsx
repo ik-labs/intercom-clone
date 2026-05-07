@@ -11,9 +11,10 @@ import { executeCommand, CommandResult } from '@/lib/terminal';
 
 interface TerminalHeroProps {
   onBriefingCommand?: () => void;
+  onCommand?: (normalizedInput: string, result: CommandResult) => void;
 }
 
-export function TerminalHero({ onBriefingCommand }: TerminalHeroProps) {
+export function TerminalHero({ onBriefingCommand, onCommand }: TerminalHeroProps) {
   const [commands, setCommands] = useState<CommandResult[]>([]);
   const [paletteOpen, setPaletteOpen] = useState(false);
 
@@ -42,6 +43,8 @@ export function TerminalHero({ onBriefingCommand }: TerminalHeroProps) {
     if (normalizedInput === '/briefing' && onBriefingCommand) {
       onBriefingCommand();
     }
+
+    onCommand?.(normalizedInput, result);
   };
 
   const handlePaletteSelect = (commandId: string) => {
