@@ -3,14 +3,12 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X } from 'lucide-react';
+import { AUTOCOMPLETE_COMMANDS } from '@/lib/terminal';
 
-const COMMANDS = [
-  { id: '/scan', label: 'Run support scan', description: 'Scan workspace operations' },
-  { id: '/fin', label: 'Show Fin activity', description: 'View AI agent resolution stats' },
-  { id: '/tickets', label: 'View SLA-risk tickets', description: 'Show high-priority queue' },
-  { id: '/briefing', label: 'Play voice briefing', description: 'Generate ElevenLabs briefing' },
-  { id: '/qa', label: 'Open QA report', description: 'View quality & sentiment metrics' },
-  { id: '/clear', label: 'Clear terminal', description: 'Clear command history' },
+const PALETTE_COMMANDS = [
+  ...AUTOCOMPLETE_COMMANDS,
+  { command: '/route', description: 'route tickets' },
+  { command: '/copilot', description: 'Display AI copilot draft suggestions' },
 ];
 
 interface CommandPaletteProps {
@@ -23,9 +21,9 @@ export function CommandPalette({ isOpen, onClose, onSelectCommand }: CommandPale
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const filtered = COMMANDS.filter(
+  const filtered = PALETTE_COMMANDS.filter(
     (cmd) =>
-      cmd.label.toLowerCase().includes(search.toLowerCase()) ||
+      cmd.command.toLowerCase().includes(search.toLowerCase()) ||
       cmd.description.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -113,9 +111,9 @@ export function CommandPalette({ isOpen, onClose, onSelectCommand }: CommandPale
                 ) : (
                   filtered.map((cmd, idx) => (
                     <motion.button
-                      key={cmd.id}
+                      key={cmd.command}
                       onClick={() => {
-                        onSelectCommand(cmd.id);
+                        onSelectCommand(cmd.command);
                         onClose();
                         setSearch('');
                       }}
@@ -125,8 +123,8 @@ export function CommandPalette({ isOpen, onClose, onSelectCommand }: CommandPale
                       onMouseEnter={() => setSelectedIndex(idx)}
                     >
                       <div className="font-mono text-sm text-foreground flex justify-between items-center">
-                        <span>{cmd.label}</span>
-                        <span className="text-xs text-muted-foreground">{cmd.id}</span>
+                        <span>{cmd.command}</span>
+                        <span className="text-xs text-muted-foreground">↵</span>
                       </div>
                       <div className="font-mono text-xs text-muted-foreground mt-1">
                         {cmd.description}

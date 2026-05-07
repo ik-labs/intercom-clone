@@ -4,12 +4,27 @@ export interface Command {
   output: string | string[];
 }
 
+export interface AutocompleteCommand {
+  command: string;
+  description: string;
+}
+
 export interface CommandResult {
   command: string;
   output: string[];
   timestamp: Date;
   status: 'success' | 'error';
 }
+
+export const AUTOCOMPLETE_COMMANDS: AutocompleteCommand[] = [
+  { command: '/help', description: 'list available commands' },
+  { command: '/scan', description: 'run support workspace scan' },
+  { command: '/fin', description: 'show Fin AI Agent activity' },
+  { command: '/tickets', description: 'view SLA-risk ticket queue' },
+  { command: '/briefing', description: 'play ElevenLabs manager briefing' },
+  { command: '/qa', description: 'show QA and sentiment report' },
+  { command: '/clear', description: 'clear terminal output' },
+];
 
 export const COMMANDS: Record<string, Command> = {
   help: {
