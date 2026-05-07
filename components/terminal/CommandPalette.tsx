@@ -46,7 +46,7 @@ export function CommandPalette({ isOpen, onClose, onSelectCommand }: CommandPale
         case 'Enter':
           e.preventDefault();
           if (filtered[selectedIndex]) {
-            onSelectCommand(filtered[selectedIndex].id);
+            onSelectCommand(filtered[selectedIndex].command);
             onClose();
             setSearch('');
           }
