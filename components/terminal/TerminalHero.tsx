@@ -116,7 +116,7 @@ export function TerminalHero({ onBriefingCommand, onCommand }: TerminalHeroProps
           transition={{ delay: 0.7, duration: 0.6 }}
           className="lg:col-span-2 border border-primary bg-primary flex flex-col overflow-hidden rounded-none"
         >
-          <CommandOutput results={commands} />
+          <CommandOutput results={commands} onQuickCommand={handleCommand} />
           <CommandInput onSubmit={handleCommand} />
         </motion.div>
 
